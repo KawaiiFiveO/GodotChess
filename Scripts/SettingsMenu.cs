@@ -7,10 +7,10 @@ public partial class SettingsMenu : Control
 	[Export]
 	private ChessGame game;
 
-    [Export]
-    private LineEdit fenString;
+	[Export]
+	private LineEdit fenString;
 
-    [Export]
+	[Export]
 	private Slider eloSlider;
 
 	[Export]
@@ -57,15 +57,15 @@ public partial class SettingsMenu : Control
 				DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
 				break;
 		}
-    }
+	}
 
-    private void _OnGetFENButtonPressed()
+	private void _OnGetFENButtonPressed()
 	{
 		string fen = game.GetFEN();
 
-        DisplayServer.ClipboardSet(fen);
-        GD.Print("Current fen position: ", fen);
-    }
+		DisplayServer.ClipboardSet(fen);
+		GD.Print("Current fen position: ", fen);
+	}
 
 	private void _OnPlayWhiteButtonPressed()
 	{
@@ -73,13 +73,13 @@ public partial class SettingsMenu : Control
 		game.PlayAsColor(fen, Piece.Color.White);
 	}
 
-    private void _OnPlayBlackButtonPressed()
-    {
-        string fen = fenString.Text;
-        game.PlayAsColor(fen, Piece.Color.Black);
-    }
+	private void _OnPlayBlackButtonPressed()
+	{
+		string fen = fenString.Text;
+		game.PlayAsColor(fen, Piece.Color.Black);
+	}
 
-    private void _OnComputerEloSliderDragEnded(bool valueChanged)
+	private void _OnComputerEloSliderDragEnded(bool valueChanged)
 	{
 		if (valueChanged)
 		{
@@ -90,7 +90,7 @@ public partial class SettingsMenu : Control
 				elo = int.MaxValue;
 			}
 
-            game.SelectComputerELO(elo);
+			game.SelectComputerELO(elo);
 
 			GD.Print("Computer ELO changed to: ", elo);
 		}
@@ -104,15 +104,15 @@ public partial class SettingsMenu : Control
 	private void _OnBackButtonPressed()
 	{
 		CloseMenu();
-    }
+	}
 
-    public override void _UnhandledInput(InputEvent e)
-    {
+	public override void _UnhandledInput(InputEvent e)
+	{
 		// pressing esc is the same as pressing the back button
 
 		if (Input.IsActionJustPressed("ui_cancel"))
 		{
 			CloseMenu();
-        }
-    }
+		}
+	}
 }

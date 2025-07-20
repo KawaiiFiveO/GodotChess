@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://qpxorkdsu700"]
 
-[ext_resource type="Script" path="res://Scripts/BoardTheme.cs" id="2_nqdfi"]
+[ext_resource type="Script" uid="uid://bgs43cpsopkmh" path="res://Scripts/BoardTheme.cs" id="2_nqdfi"]
 
 [resource]
 resource_local_to_scene = true

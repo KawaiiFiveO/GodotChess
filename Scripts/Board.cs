@@ -10,26 +10,26 @@ public class Board
 
 	public struct Piece
 	{
-        public enum Type
-        {
-            None,
-            King,
-            Queen,
-            Bishop,
-            Knight,
-            Rook,
-            Pawn
-        }
-
-        public enum Color
+		public enum Type
 		{
-            None,
-            White,
-			Black
-        }
+			None,
+			King,
+			Queen,
+			Bishop,
+			Knight,
+			Rook,
+			Pawn
+		}
 
-        public Type type;
-        public Color color;
+		public enum Color
+		{
+			None,
+			White,
+			Black
+		}
+
+		public Type type;
+		public Color color;
 	}
 
 	// move struct
@@ -63,12 +63,13 @@ public class Board
 
 	public struct State
 	{
-        public Piece.Color turnColor;
+		public Piece.Color turnColor;
 		public Piece.Color doublePushedPawnColor; // color of pawn that doublepushed for check if enPassant is available
 		public int enPassantSquareIndex; // pawn tile that can be captured by en-passant
 		public bool canCastleWhite, canCastleShortWhite, canCastleLongWhite;
-        public bool canCastleBlack, canCastleShortBlack, canCastleLongBlack;
-    }
+		public bool canCastleBlack, canCastleShortBlack, canCastleLongBlack;
+		public int halfMoveClock;
+	}
 
 	// start fen string
 
@@ -80,11 +81,11 @@ public class Board
 	public static readonly int E1 = 60, E8 = 4; // king squares
 	public static readonly int C1 = 58, C8 = 2, G1 = 62, G8 = 6;
 	public static readonly int F1 = 61, D1 = 59, F8 = 5, D8 = 3; // tower castling target squares
-    public static readonly int B1 = 57, B8 = 1;
+	public static readonly int B1 = 57, B8 = 1;
 
-    // promotion piece
+	// promotion piece
 
-    public Piece.Type PromotionPieceType = Piece.Type.Queen;
+	public Piece.Type PromotionPieceType = Piece.Type.Queen;
 
 	// pieces array
 	// TODO: make a list that tracks the indices where the pieces are instead of just looping through all the board to find them
@@ -97,12 +98,20 @@ public class Board
 
 	private Stack<Move> moves = new Stack<Move>();
 	private Stack<State> states = new Stack<State>();
+	private Dictionary<string, int> positionHistory = new Dictionary<string, int>();
 
 	private State currentState = new State();
+	
+	private string GetPositionKey()
+	{
+		string fen = GetFEN();
+		string[] fenParts = fen.Split(' ');
+		return $"{fenParts[0]} {fenParts[1]} {fenParts[2]} {fenParts[3]}";
+	}
 
 	// get piece at index
 
-    public Piece GetPiece(int index)
+	public Piece GetPiece(int index)
 	{
 		return pieces[index];
 	}
@@ -143,10 +152,10 @@ public class Board
 		return currentState.turnColor;
 	}
 
-    // find king
+	// find king
 
-    public int FindKingOfColor(Piece.Color color)
-    {
+	public int FindKingOfColor(Piece.Color color)
+	{
 		List<int> indices = GetPiecesIndicesByColor(color);
 
 		foreach (int index in indices)
@@ -157,35 +166,47 @@ public class Board
 			}
 		}
 
-        GD.PrintErr("there is no king?");
+		GD.PrintErr("there is no king?");
 
-        return 0;
-    }
+		return 0;
+	}
+	
+	public int GetPositionCount(string key)
+	{
+		return positionHistory.ContainsKey(key) ? positionHistory[key] : 0;
+	}
+	
+	public int GetHalfMoveClock()
+	{
+		return currentState.halfMoveClock;
+	}
+	
 
-    // copy board pieces and current state to other board
+	// copy board pieces and current state to other board
 
-    public void CopyBoardState(Board board)
+	public void CopyBoardState(Board board)
 	{
 		pieces.CopyTo(board.pieces, 0);
 		board.currentState = currentState;
 		board.whitePiecesIndices = whitePiecesIndices.ToList();
-        board.blackPiecesIndices = blackPiecesIndices.ToList();
-    }
+		board.blackPiecesIndices = blackPiecesIndices.ToList();
+	}
 
 	// set fen string
 
 	public void LoadFEN(string fen)
 	{
-        // clear
+		// clear
 
-        states.Clear();
-        moves.Clear();
+		states.Clear();
+		moves.Clear();
 		whitePiecesIndices.Clear();
 		blackPiecesIndices.Clear();
+		positionHistory.Clear();
 
-        // split fen string
+		// split fen string
 
-        string[] subFEN = fen.Split(' ');
+		string[] subFEN = fen.Split(' ');
 
 		// pieces placement (subFEN[0])
 
@@ -241,20 +262,20 @@ public class Board
 
 		currentState.turnColor = subFEN[1].Equals("w") ? Piece.Color.White : Piece.Color.Black;
 
-        // castling rights (subFEN[2])
+		// castling rights (subFEN[2])
 
-        currentState.canCastleShortWhite = false;
-        currentState.canCastleLongWhite = false;
-        currentState.canCastleShortBlack = false;
-        currentState.canCastleLongBlack = false;
+		currentState.canCastleShortWhite = false;
+		currentState.canCastleLongWhite = false;
+		currentState.canCastleShortBlack = false;
+		currentState.canCastleLongBlack = false;
 
-        if (subFEN[2].Equals("-"))
+		if (subFEN[2].Equals("-"))
 		{
 			// neither side cant castle
 
 			currentState.canCastleWhite = false;
-            currentState.canCastleBlack = false;
-        }
+			currentState.canCastleBlack = false;
+		}
 		else
 		{
 			foreach (char symbol in subFEN[2])
@@ -265,20 +286,20 @@ public class Board
 						currentState.canCastleShortWhite = true;
 						break;
 					case 'Q':
-                        currentState.canCastleLongWhite = true;
-                        break;
+						currentState.canCastleLongWhite = true;
+						break;
 					case 'k':
-                        currentState.canCastleShortBlack = true;
-                        break;
+						currentState.canCastleShortBlack = true;
+						break;
 					case 'q':
-                        currentState.canCastleLongBlack = true;
-                        break;
+						currentState.canCastleLongBlack = true;
+						break;
 				}
 			}
 
 			currentState.canCastleWhite = currentState.canCastleShortWhite || currentState.canCastleLongWhite;
-            currentState.canCastleBlack = currentState.canCastleShortBlack || currentState.canCastleLongBlack;
-        }
+			currentState.canCastleBlack = currentState.canCastleShortBlack || currentState.canCastleLongBlack;
+		}
 
 		// en passant (subFEN[3])
 
@@ -302,25 +323,36 @@ public class Board
 					break;
 				case '6':
 					row = 3;
-                    currentState.doublePushedPawnColor = Piece.Color.Black;
-                    break;
+					currentState.doublePushedPawnColor = Piece.Color.Black;
+					break;
 			}
 
 			currentState.enPassantSquareIndex = column + row * 8;
 		}
+		
+		if (subFEN.Length > 4)
+		{
+			currentState.halfMoveClock = int.Parse(subFEN[4]);
+		}
+		else
+		{
+			currentState.halfMoveClock = 0;
+		}
+		string initialKey = GetPositionKey();
+		positionHistory[initialKey] = 1;
 	}
 
 	// get fen
 
 	public string GetFEN()
 	{
-        Dictionary<Piece.Type, char> symbolFromPieceType = new Dictionary<Piece.Type, char>()
-        {
-            { Piece.Type.Pawn, 'p' }, { Piece.Type.Knight, 'n' }, { Piece.Type.Bishop, 'b' },
-            { Piece.Type.Rook, 'r' }, { Piece.Type.Queen , 'q' }, { Piece.Type.King  , 'k' }
-        };
+		Dictionary<Piece.Type, char> symbolFromPieceType = new Dictionary<Piece.Type, char>()
+		{
+			{ Piece.Type.Pawn, 'p' }, { Piece.Type.Knight, 'n' }, { Piece.Type.Bishop, 'b' },
+			{ Piece.Type.Rook, 'r' }, { Piece.Type.Queen , 'q' }, { Piece.Type.King  , 'k' }
+		};
 
-        StringBuilder fenString = new StringBuilder();
+		StringBuilder fenString = new StringBuilder();
 
 		// pieces
 
@@ -342,7 +374,7 @@ public class Board
 					}
 
 					char pieceSymbol = piece.color == Piece.Color.White ? char.ToUpper(symbolFromPieceType[piece.type]) : symbolFromPieceType[piece.type];
-                    fenString.Append(pieceSymbol);
+					fenString.Append(pieceSymbol);
 
 					emptyCounter = 0;
 				}
@@ -354,8 +386,8 @@ public class Board
 
 			if (emptyCounter != 0)
 			{
-                fenString.Append(emptyCounter);
-            }
+				fenString.Append(emptyCounter);
+			}
 
 			if (j < 7)
 			{
@@ -397,7 +429,7 @@ public class Board
 					fenString.Append('q');
 				}
 			}
-        }
+		}
 		else
 		{
 			fenString.Append("-");
@@ -407,8 +439,8 @@ public class Board
 
 		if (currentState.doublePushedPawnColor != Piece.Color.None)
 		{
-            char[] letters = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
-            int column = currentState.enPassantSquareIndex % 8;
+			char[] letters = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
+			int column = currentState.enPassantSquareIndex % 8;
 			char columnLetter = letters[column];
 
 			switch (currentState.doublePushedPawnColor)
@@ -417,16 +449,18 @@ public class Board
 					fenString.AppendFormat(" {0}{1}", columnLetter, 4);
 					break;
 				case Piece.Color.Black:
-                    fenString.AppendFormat(" {0}{1}", columnLetter, 6);
-                    break;
+					fenString.AppendFormat(" {0}{1}", columnLetter, 6);
+					break;
 			}
 		}
 		else
 		{
 			fenString.Append(" -");
 		}
+		
+		fenString.AppendFormat(" {0} 1", currentState.halfMoveClock);
 
-        return fenString.ToString();
+		return fenString.ToString();
 	}
 
 	// make a move on the board
@@ -436,64 +470,73 @@ public class Board
 		// push the current state into the stack
 
 		states.Push(currentState);
+		
+		if (move.pieceSource.type == Piece.Type.Pawn || move.pieceTarget.type != Piece.Type.None)
+		{
+			currentState.halfMoveClock = 0;
+		}
+		else 
+		{
+			currentState.halfMoveClock++;
+		}
 
-        // modify pieces indices list
+		// modify pieces indices list
 
-        switch (move.pieceSource.color)
-        {
-            case Piece.Color.White:
-                whitePiecesIndices.Remove(move.squareSourceIndex);
-                whitePiecesIndices.Add(move.squareTargetIndex);
-                break;
-            case Piece.Color.Black:
-                blackPiecesIndices.Remove(move.squareSourceIndex);
-                blackPiecesIndices.Add(move.squareTargetIndex);
-                break;
-        }
+		switch (move.pieceSource.color)
+		{
+			case Piece.Color.White:
+				whitePiecesIndices.Remove(move.squareSourceIndex);
+				whitePiecesIndices.Add(move.squareTargetIndex);
+				break;
+			case Piece.Color.Black:
+				blackPiecesIndices.Remove(move.squareSourceIndex);
+				blackPiecesIndices.Add(move.squareTargetIndex);
+				break;
+		}
 
-        switch (move.pieceTarget.color)
-        {
-            case Piece.Color.White:
-                whitePiecesIndices.Remove(move.squareTargetIndex);
-                break;
-            case Piece.Color.Black:
-                blackPiecesIndices.Remove(move.squareTargetIndex);
-                break;
-        }
+		switch (move.pieceTarget.color)
+		{
+			case Piece.Color.White:
+				whitePiecesIndices.Remove(move.squareTargetIndex);
+				break;
+			case Piece.Color.Black:
+				blackPiecesIndices.Remove(move.squareTargetIndex);
+				break;
+		}
 
-        // make the move & change state
+		// make the move & change state
 
-        pieces[move.squareSourceIndex] = new Piece(); // remove piece at the "Source" square
+		pieces[move.squareSourceIndex] = new Piece(); // remove piece at the "Source" square
 
 		// move flags
 
-        switch (move.flags)
+		switch (move.flags)
 		{
 			case Move.Flags.DoublePush:
 				currentState.doublePushedPawnColor = move.pieceSource.color;
 				currentState.enPassantSquareIndex = move.squareTargetIndex;
-                pieces[move.squareTargetIndex] = move.pieceSource;
-                break;
+				pieces[move.squareTargetIndex] = move.pieceSource;
+				break;
 			case Move.Flags.Promotion:
-                currentState.doublePushedPawnColor = Piece.Color.None;
-                pieces[move.squareTargetIndex] = new Piece { type = move.promotionPieceType, color = move.pieceSource.color };
+				currentState.doublePushedPawnColor = Piece.Color.None;
+				pieces[move.squareTargetIndex] = new Piece { type = move.promotionPieceType, color = move.pieceSource.color };
 				break;
 			case Move.Flags.EnPassant:
-                switch (currentState.doublePushedPawnColor)
-                {
-                    case Piece.Color.White:
-                        whitePiecesIndices.Remove(currentState.enPassantSquareIndex);
-                        break;
-                    case Piece.Color.Black:
-                        blackPiecesIndices.Remove(currentState.enPassantSquareIndex);
-                        break;
-                }
+				switch (currentState.doublePushedPawnColor)
+				{
+					case Piece.Color.White:
+						whitePiecesIndices.Remove(currentState.enPassantSquareIndex);
+						break;
+					case Piece.Color.Black:
+						blackPiecesIndices.Remove(currentState.enPassantSquareIndex);
+						break;
+				}
 
-                pieces[currentState.enPassantSquareIndex] = new Piece();
-                currentState.doublePushedPawnColor = Piece.Color.None;
-                pieces[move.squareTargetIndex] = move.pieceSource;
+				pieces[currentState.enPassantSquareIndex] = new Piece();
+				currentState.doublePushedPawnColor = Piece.Color.None;
+				pieces[move.squareTargetIndex] = move.pieceSource;
 
-                break;
+				break;
 			case Move.Flags.CastleShort:
 				currentState.doublePushedPawnColor = Piece.Color.None;
 				pieces[move.squareSourceIndex] = new Piece();
@@ -503,52 +546,52 @@ public class Board
 				{
 					case Piece.Color.White:
 						pieces[F1] = pieces[H1];
-                        pieces[H1] = new Piece();
+						pieces[H1] = new Piece();
 
 						whitePiecesIndices.Remove(H1);
 						whitePiecesIndices.Add(F1);
-                        break;
+						break;
 					case Piece.Color.Black:
-                        pieces[F8] = pieces[H8];
-                        pieces[H8] = new Piece();
+						pieces[F8] = pieces[H8];
+						pieces[H8] = new Piece();
 
-                        blackPiecesIndices.Remove(H8);
-                        blackPiecesIndices.Add(F8);
-                        break;
+						blackPiecesIndices.Remove(H8);
+						blackPiecesIndices.Add(F8);
+						break;
 				}
 				break;
 			case Move.Flags.CastleLong:
-                currentState.doublePushedPawnColor = Piece.Color.None;
-                pieces[move.squareSourceIndex] = new Piece();
-                pieces[move.squareTargetIndex] = move.pieceSource;
+				currentState.doublePushedPawnColor = Piece.Color.None;
+				pieces[move.squareSourceIndex] = new Piece();
+				pieces[move.squareTargetIndex] = move.pieceSource;
 
-                switch (move.pieceSource.color)
-                {
-                    case Piece.Color.White:
-                        pieces[D1] = pieces[A1];
-                        pieces[A1] = new Piece();
+				switch (move.pieceSource.color)
+				{
+					case Piece.Color.White:
+						pieces[D1] = pieces[A1];
+						pieces[A1] = new Piece();
 
-                        whitePiecesIndices.Remove(A1);
-                        whitePiecesIndices.Add(D1);
-                        break;
-                    case Piece.Color.Black:
-                        pieces[D8] = pieces[A8];
-                        pieces[A8] = new Piece();
+						whitePiecesIndices.Remove(A1);
+						whitePiecesIndices.Add(D1);
+						break;
+					case Piece.Color.Black:
+						pieces[D8] = pieces[A8];
+						pieces[A8] = new Piece();
 
-                        blackPiecesIndices.Remove(A8);
-                        blackPiecesIndices.Add(D8);
-                        break;
-                }
-                break;
-            default:
-                currentState.doublePushedPawnColor = Piece.Color.None;
-                pieces[move.squareTargetIndex] = move.pieceSource;
-                break;
+						blackPiecesIndices.Remove(A8);
+						blackPiecesIndices.Add(D8);
+						break;
+				}
+				break;
+			default:
+				currentState.doublePushedPawnColor = Piece.Color.None;
+				pieces[move.squareTargetIndex] = move.pieceSource;
+				break;
 		}
 
-        // check if the king or the towers moved
+		// check if the king or the towers moved
 
-        if (move.squareSourceIndex == E1 || move.squareTargetIndex == E1) // white king
+		if (move.squareSourceIndex == E1 || move.squareTargetIndex == E1) // white king
 		{
 			currentState.canCastleWhite = false;
 		}
@@ -566,28 +609,43 @@ public class Board
 			currentState.canCastleShortWhite = false;
 		}
 
-        if (move.squareSourceIndex == A8 || move.squareTargetIndex == A8) // black queen side tower
-        {
-            currentState.canCastleLongBlack = false;
-        }
-        else if (move.squareSourceIndex == H8 || move.squareTargetIndex == H8) // black king side tower
-        {
-            currentState.canCastleShortBlack = false;
-        }
+		if (move.squareSourceIndex == A8 || move.squareTargetIndex == A8) // black queen side tower
+		{
+			currentState.canCastleLongBlack = false;
+		}
+		else if (move.squareSourceIndex == H8 || move.squareTargetIndex == H8) // black king side tower
+		{
+			currentState.canCastleShortBlack = false;
+		}
 
-        // push the move into the stack
+		// push the move into the stack
 
-        moves.Push(move);
+		moves.Push(move);
 
 		// change turn color
 
 		currentState.turnColor = currentState.turnColor == Piece.Color.White ? Piece.Color.Black : Piece.Color.White;
-    }
+		
+		string key = GetPositionKey();
+		if (positionHistory.ContainsKey(key))
+		{
+			positionHistory[key]++;
+		}
+		else
+		{
+			positionHistory[key] = 1;
+		}
+	}
 
 	public void UndoMove()
 	{
 		if (states.Count > 0)
 		{
+			string keyToDecrement = GetPositionKey();
+			if (positionHistory.ContainsKey(keyToDecrement))
+			{
+				positionHistory[keyToDecrement]--;
+			}
 			// get back to the last state
 
 			currentState = states.Pop();
@@ -596,89 +654,89 @@ public class Board
 
 			Move move = moves.Pop();
 
-            // modify pieces indices list
+			// modify pieces indices list
 
-            switch (move.pieceSource.color)
-            {
-                case Piece.Color.White:
-                    whitePiecesIndices.Remove(move.squareTargetIndex);
-                    whitePiecesIndices.Add(move.squareSourceIndex);
-                    break;
-                case Piece.Color.Black:
-                    blackPiecesIndices.Remove(move.squareTargetIndex);
-                    blackPiecesIndices.Add(move.squareSourceIndex);
-                    break;
-            }
+			switch (move.pieceSource.color)
+			{
+				case Piece.Color.White:
+					whitePiecesIndices.Remove(move.squareTargetIndex);
+					whitePiecesIndices.Add(move.squareSourceIndex);
+					break;
+				case Piece.Color.Black:
+					blackPiecesIndices.Remove(move.squareTargetIndex);
+					blackPiecesIndices.Add(move.squareSourceIndex);
+					break;
+			}
 
-            switch (move.pieceTarget.color)
-            {
-                case Piece.Color.White:
-                    whitePiecesIndices.Add(move.squareTargetIndex);
-                    break;
-                case Piece.Color.Black:
-                    blackPiecesIndices.Add(move.squareTargetIndex);
-                    break;
-            }
+			switch (move.pieceTarget.color)
+			{
+				case Piece.Color.White:
+					whitePiecesIndices.Add(move.squareTargetIndex);
+					break;
+				case Piece.Color.Black:
+					blackPiecesIndices.Add(move.squareTargetIndex);
+					break;
+			}
 
 			// undo move
 
-            pieces[move.squareSourceIndex] = move.pieceSource;
-            pieces[move.squareTargetIndex] = move.pieceTarget;
+			pieces[move.squareSourceIndex] = move.pieceSource;
+			pieces[move.squareTargetIndex] = move.pieceTarget;
 
-            switch (move.flags)
+			switch (move.flags)
 			{
-                case Move.Flags.CastleShort:
-                    switch (move.pieceSource.color)
-                    {
-                        case Piece.Color.White:
-                            pieces[F1] = new Piece();
-                            pieces[H1] = new Piece { type = Piece.Type.Rook, color = Piece.Color.White };
+				case Move.Flags.CastleShort:
+					switch (move.pieceSource.color)
+					{
+						case Piece.Color.White:
+							pieces[F1] = new Piece();
+							pieces[H1] = new Piece { type = Piece.Type.Rook, color = Piece.Color.White };
 
-                            whitePiecesIndices.Remove(F1);
-                            whitePiecesIndices.Add(H1);
-                            break;
-                        case Piece.Color.Black:
-                            pieces[F8] = new Piece();
-                            pieces[H8] = new Piece { type = Piece.Type.Rook, color = Piece.Color.Black };
+							whitePiecesIndices.Remove(F1);
+							whitePiecesIndices.Add(H1);
+							break;
+						case Piece.Color.Black:
+							pieces[F8] = new Piece();
+							pieces[H8] = new Piece { type = Piece.Type.Rook, color = Piece.Color.Black };
 
-                            blackPiecesIndices.Remove(F8);
-                            blackPiecesIndices.Add(H8);
-                            break;
-                    }
-                    break;
-                case Move.Flags.CastleLong:
-                    switch (move.pieceSource.color)
-                    {
-                        case Piece.Color.White:
+							blackPiecesIndices.Remove(F8);
+							blackPiecesIndices.Add(H8);
+							break;
+					}
+					break;
+				case Move.Flags.CastleLong:
+					switch (move.pieceSource.color)
+					{
+						case Piece.Color.White:
 							pieces[D1] = new Piece();
-                            pieces[A1] = new Piece { type = Piece.Type.Rook, color = Piece.Color.White };
+							pieces[A1] = new Piece { type = Piece.Type.Rook, color = Piece.Color.White };
 
-                            whitePiecesIndices.Remove(D1);
-                            whitePiecesIndices.Add(A1);
-                            break;
-                        case Piece.Color.Black:
+							whitePiecesIndices.Remove(D1);
+							whitePiecesIndices.Add(A1);
+							break;
+						case Piece.Color.Black:
 							pieces[D8] = new Piece();
-                            pieces[A8] = new Piece { type = Piece.Type.Rook, color = Piece.Color.Black };
+							pieces[A8] = new Piece { type = Piece.Type.Rook, color = Piece.Color.Black };
 
-                            blackPiecesIndices.Remove(D8);
-                            blackPiecesIndices.Add(A8);
-                            break;
-                    }
-                    break;
-                case Move.Flags.EnPassant:
+							blackPiecesIndices.Remove(D8);
+							blackPiecesIndices.Add(A8);
+							break;
+					}
+					break;
+				case Move.Flags.EnPassant:
 					pieces[currentState.enPassantSquareIndex] = new Piece { type = Piece.Type.Pawn, color = currentState.doublePushedPawnColor };
 
-                    switch (currentState.doublePushedPawnColor)
-                    {
-                        case Piece.Color.White:
-                            whitePiecesIndices.Add(currentState.enPassantSquareIndex);
-                            break;
-                        case Piece.Color.Black:
-                            blackPiecesIndices.Add(currentState.enPassantSquareIndex);
-                            break;
-                    }
-                    break;
+					switch (currentState.doublePushedPawnColor)
+					{
+						case Piece.Color.White:
+							whitePiecesIndices.Add(currentState.enPassantSquareIndex);
+							break;
+						case Piece.Color.Black:
+							blackPiecesIndices.Add(currentState.enPassantSquareIndex);
+							break;
+					}
+					break;
 			}
-        }
+		}
 	}
 }

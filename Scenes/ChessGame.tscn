@@ -1,10 +1,10 @@
 [gd_scene load_steps=16 format=3 uid="uid://014wlx7s1u0b"]
 
-[ext_resource type="Script" path="res://Scripts/ChessGame.cs" id="1_8wyvt"]
-[ext_resource type="Script" path="res://Scripts/BoardGraphics.cs" id="1_23jwv"]
+[ext_resource type="Script" uid="uid://cile1hppc1c5h" path="res://Scripts/ChessGame.cs" id="1_8wyvt"]
+[ext_resource type="Script" uid="uid://c44vko5an1dn5" path="res://Scripts/BoardGraphics.cs" id="1_23jwv"]
 [ext_resource type="Texture2D" uid="uid://bxl4o12psispv" path="res://Assets/Sprites/classicpieces2.png" id="2_whjme"]
 [ext_resource type="Resource" uid="uid://ch43sqf31721d" path="res://Assets/Themes/PurpleTheme.tres" id="3_h2x5i"]
-[ext_resource type="Script" path="res://Scripts/Menu.cs" id="4_3ylh8"]
+[ext_resource type="Script" uid="uid://dyfrlt0xe7ktg" path="res://Scripts/Menu.cs" id="4_3ylh8"]
 [ext_resource type="Theme" uid="uid://dgkm02cwgddi4" path="res://Assets/Themes/UI.tres" id="4_kopw5"]
 [ext_resource type="AudioStream" uid="uid://cuync3vwglr85" path="res://Assets/Sounds/move-self.ogg" id="10_smqnu"]
 [ext_resource type="AudioStream" uid="uid://d2vuj4vn534g6" path="res://Assets/Sounds/move-opponent.ogg" id="11_weniw"]

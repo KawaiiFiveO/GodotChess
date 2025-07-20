@@ -3,15 +3,15 @@ using System;
 
 public partial class BoardTheme : Resource
 {
-    // board colors
+	// board colors
 
-    [Export]
-    public Color LightColor;
-    [Export]
-    public Color DarkColor;
+	[Export]
+	public Color LightColor;
+	[Export]
+	public Color DarkColor;
 
-    // last move color
+	// last move color
 
-    [Export]
-    public Color LastMoveColor;
+	[Export]
+	public Color LastMoveColor;
 }
